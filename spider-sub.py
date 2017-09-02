@@ -52,8 +52,8 @@ def mkdir(init_url):
         if e.errno != errno.EEXIST:
             print('ok')
         else:
-            print('the folder has existed.')
-            time.sleep(random.randint(10,30))
+            print(folder_name,': the folder has existed.')
+            #time.sleep(random.randint(1,6))
             #pass
 
 
@@ -73,16 +73,36 @@ def get_pic(folder_name):
     print(referer)
 
     # save pic.
-    name = pic_url[-9:-4]
-    print name
-    img = requests.get(pic_url, headers=headers)
-    f = open(folder_name +'/'+ name + '.jpg', 'ab')
-    f.write(img.content)
-    f.close()
-    print 'pic saved.'
-    referer = (img_Soup.find('div',class_='main-image').find('p').find('a'))['href']
+    try:
+        name = pic_url[-9:-4]
+        print name
+        img = requests.get(pic_url, headers=headers)
+        f = open(folder_name +'/'+ name + '.jpg', 'ab')
+        f.write(img.content)
+        f.close()
+        print 'pic saved.'
+        referer = (img_Soup.find('div',class_='main-image').find('p').find('a'))['href']
+        time.sleep(random.randint(2,6))
 
-    time.sleep(random.randint(10,30))
+    except requests.exceptions.ConnectionError as e:
+        print(e)
+        get_pic(folder_name)
+
+        #for z in range(1,10):
+            #print('this is the ',z,' time reconnect for the ',folder_name,' ', name,'.jpg.')
+        #time.sleep(random.randint(30,60))
+
+    except requests.exceptions.Timeout:
+        pass
+    # Maybe set up for a retry, or continue in a retry loop
+    except requests.exceptions.TooManyRedirects:
+        pass
+        # Tell the user their URL was bad and try a different one
+    except requests.exceptions.RequestException as e:
+        pass
+        # catastrophic error. bail.
+        print e
+        sys.exit(1)
 
     return
 
