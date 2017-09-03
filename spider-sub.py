@@ -76,21 +76,18 @@ def get_pic(folder_name):
     try:
         name = pic_url[-9:-4]
         print name
+        name = name.replace('/','_')
         img = requests.get(pic_url, headers=headers)
         f = open(folder_name +'/'+ name + '.jpg', 'ab')
         f.write(img.content)
         f.close()
         print 'pic saved.'
         referer = (img_Soup.find('div',class_='main-image').find('p').find('a'))['href']
-        time.sleep(random.randint(2,6))
+        time.sleep(random.randint(1,2))
 
     except requests.exceptions.ConnectionError as e:
         print(e)
         get_pic(folder_name)
-
-        #for z in range(1,10):
-            #print('this is the ',z,' time reconnect for the ',folder_name,' ', name,'.jpg.')
-        #time.sleep(random.randint(30,60))
 
     except requests.exceptions.Timeout:
         pass
@@ -102,7 +99,7 @@ def get_pic(folder_name):
         pass
         # catastrophic error. bail.
         print e
-        sys.exit(1)
+        #sys.exit(1)
 
     return
 
