@@ -11,33 +11,20 @@ import sys
 # Global
 
 def download_pic(referer,url,headers):
-    try:
-        headers['Referer'] = referer
-        s = requests.Session()
-        get_collection_html =  s.get(url,  headers = headers)
-        time.sleep(random.randint(1,2))
-        return get_collection_html
 
-    except requests.exceptions.ConnectionError as e:
-        print(e)
-        get_url(referer,url,headers)
-
-    except requests.exceptions.Timeout:
-        pass
-    # Maybe set up for a retry, or continue in a retry loop
-    except requests.exceptions.TooManyRedirects:
-        pass
-        # Tell the user their URL was bad and try a different one
-    except requests.exceptions.RequestException as e:
-        pass
-        # catastrophic error. bail.
-        print e
+    headers['Host'] = re.search(r'https://(.*.com)/.*',url).group(1)
+    headers['Referer'] = referer
+    s = requests.Session()
+    get_collection_html =  s.get(url,  headers = headers)
+    time.sleep(random.randint(1,2))
+    return get_collection_html
 
 
 
 def get_url(referer,url,headers):
     if referer != '':
         try:
+            headers['Host'] = re.search(r'https://(.*.com)/.*',url).group(1)
             headers['Referer'] = referer
             s = requests.Session()
             get_collection_html =  s.get(url,  headers = headers)
@@ -46,7 +33,6 @@ def get_url(referer,url,headers):
 
         except requests.exceptions.ConnectionError as e:
             print(e)
-            get_url(referer,url,headers)
 
         except requests.exceptions.Timeout:
             pass
@@ -61,6 +47,7 @@ def get_url(referer,url,headers):
 
     else:
         try:
+            headers['Host'] = re.search(r'https://(.*.com)/.*',url).group(1)
             s = requests.Session()
             get_collection_html =  s.get(url,  headers = headers)
             time.sleep(random.randint(1,2))
@@ -83,10 +70,10 @@ def get_url(referer,url,headers):
 
 
 
-
 ref = ''
 Host = 'www.douban.com'
 Connection = 'keep-alive'
+#Connection = 'close'
 UpgradeInsecureRequests = '1'
 UserAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'
 Accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
@@ -164,7 +151,7 @@ def get_doulist(referer, doulist):
             if re.match('https:\/\/www',str(album_url)):
                 get_pics_url(global_doulist, album_url)
                 time.sleep(random.randint(1,2))
-                sys.exit('ok')
+                # sys.exit('ok')
 
         time.sleep(random.randint(1,2))
 
@@ -173,23 +160,26 @@ def get_doulist(referer, doulist):
 
 def get_pics_url(global_doulist,album_url):
 
+    print global_doulist
+    print album_url
+
+
+
+
+
     Soup = get_url(ref, album_url, headers)
+    Soup = get_url(global_doulist, album_url, headers)
     album = Soup.find('h1').get_text()
+    #print Soup
     num_of_album = Soup.find('div',class_="pl photitle").span.get_text()
     num_of_album = re.findall("\d+",num_of_album)[0]
 
     first_pic_url = Soup.find('div',class_='photo_wrap').a['href']
 
-    # print num_of_album
-
-
-    #sys.exit('ok')
 
     #global ref
     try:
         os.makedirs(album)
-        # for x in range(0,pics_num):
-        #     get_pic(folder_name)
         global folder_name
         folder_name = album
         img_ref = album_url
@@ -197,11 +187,7 @@ def get_pics_url(global_doulist,album_url):
         y = [img_ref, first_pic_url]
         for x in range(0,int(num_of_album)):
 
-            print y[0]
-            print y[1]
-
             y = get_pic(y[0],y[1],x)
-            #time.sleep(random.randint(1,2))
 
     except OSError as e:
         if e.errno != errno.EEXIST:
@@ -214,35 +200,52 @@ def get_pics_url(global_doulist,album_url):
 
 
 def get_pic(pic_ref,pic,x):
-
-    #pic = pic.replace('#image','')
-    headers['Host'] = 'www.douban.com'
+    #headers['Host'] = 'www.douban.com'
     Soup = get_url(pic_ref,pic,headers)
-
 
     # real image url
     img_url_soup = Soup.find('a',class_="mainphoto").img['src']
     img_url = img_url_soup
     img_url = img_url.replace('webp','jpg')
 
-    #get different host in headers
-    host = re.search(r'https://(.*.com)/.*',img_url).group(1)
 
     # get next pic_url
     next_pic_url = str(Soup.find('a',class_="mainphoto")['href'])
+
+    #get different host in headers
+    host = re.search(r'https://(.*.com)/.*',img_url).group(1)
     img_headers = headers
     img_headers['Host'] = host
     name = x
-    img = download_pic(pic, img_url, headers)
-    f = open(folder_name +'/'+ str(name) + '.jpg', 'ab')
-    f.write(img.content)
-    f.close()
+
+    try:
+        img = download_pic(pic, img_url, headers)
+        f = open(folder_name +'/'+ str(name) + '.jpg', 'ab')
+        f.write(img.content)
+        f.close()
+
+    except requests.exceptions.ConnectionError as e:
+        print(e)
+        #print ''
+        time.sleep(random.randint(10,20))
+        get_pic(pic_ref,pic,x)
+
+    except requests.exceptions.Timeout:
+        pass
+    # Maybe set up for a retry, or continue in a retry loop
+    except requests.exceptions.TooManyRedirects:
+        pass
+        # Tell the user their URL was bad and try a different one
+    except requests.exceptions.RequestException as e:
+        pass
+        # catastrophic error. bail.
+        print e
+
+
     pic = pic.replace('#image','')
     res =[pic,next_pic_url]
 
-
-    print 'pic saved.'
-
+    print str(x) + ' pic saved.'
     return res
 
 
