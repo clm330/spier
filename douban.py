@@ -122,9 +122,6 @@ def get_collection():
 #doulist_url = get_album_in_each_page( page_ref, doulist, x)
 def get_album_in_each_page(page_ref, doulist, x):
 
-    #global page_ref
-    #global doulist
-
     if x == 0:
         page_ref = doulist
 
@@ -200,22 +197,11 @@ def get_pics_url(global_doulist,album_url):
         y = [img_ref, first_pic_url]
         for x in range(0,int(num_of_album)):
 
-            #global y
-
-
-            # y['ref'] = img_ref
-            # y['pic'] = first_pic_url
-
-            # print img_ref
-            # print first_pic_url
-
             print y[0]
             print y[1]
 
-            #print '111'
-            #get_pic(img_ref,pic_url,x)
             y = get_pic(y[0],y[1],x)
-            time.sleep(random.randint(1,2))
+            #time.sleep(random.randint(1,2))
 
     except OSError as e:
         if e.errno != errno.EEXIST:
@@ -228,38 +214,37 @@ def get_pics_url(global_doulist,album_url):
 
 
 def get_pic(pic_ref,pic,x):
-    #global ref
 
     #pic = pic.replace('#image','')
     headers['Host'] = 'www.douban.com'
     Soup = get_url(pic_ref,pic,headers)
-    # print Soup
-    # print Soup.find('a',class_="mainphoto")
+
+
+    # real image url
     img_url_soup = Soup.find('a',class_="mainphoto").img['src']
     img_url = img_url_soup
-    #print img_url
-
     img_url = img_url.replace('webp','jpg')
-    pic_url = str(Soup.find('a',class_="mainphoto")['href'])
-    #print pic_url
 
+    #get different host in headers
+    host = re.search(r'https://(.*.com)/.*',img_url).group(1)
+
+    # get next pic_url
+    next_pic_url = str(Soup.find('a',class_="mainphoto")['href'])
     img_headers = headers
-    img_headers['Host'] = 'img3.doubanio.com'
+    img_headers['Host'] = host
     name = x
     img = download_pic(pic, img_url, headers)
     f = open(folder_name +'/'+ str(name) + '.jpg', 'ab')
     f.write(img.content)
     f.close()
-    img_ref = pic
+    pic = pic.replace('#image','')
+    res =[pic,next_pic_url]
 
-    res =[pic,pic_url]
 
-    # res[0] = pic
-    # res[1] = pic_url
+    print 'pic saved.'
 
     return res
 
-    print 'pic saved.'
 
 
 
